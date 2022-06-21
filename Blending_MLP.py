@@ -17,7 +17,7 @@ ray.init( dashboard_host="0.0.0.0")
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, RobustScaler, StandardScaler
 from sklearn.metrics import log_loss
 
 import numpy as np
@@ -110,11 +110,18 @@ for i,col in enumerate(X.columns):
         if len(enc.classes_)>2:
             cat_idxs.append(i)
             cat_dims.append(len(enc.classes_))
+        else:
+            scl=StandardScaler()
+            X[col] = scl.fit_transform(X[col].values.reshape(-1, 1))
+            X_test[col] = scl.transform(X_test[col].values.reshape(-1, 1))
 
     else:
         median=X[col].median()
         X[col].fillna(median,inplace=True)
         X_test[col].fillna(median,inplace=True)
+        scl = RobustScaler()
+        X[col] = scl.fit_transform(X[col].values.reshape(-1, 1))
+        X_test[col] = scl.transform(X_test[col].values.reshape(-1, 1))
 
 
 
@@ -212,7 +219,7 @@ def train_fun(model,criterion,optimizer,train_loader,val_loader,
 
 X_test = X_test.values
 test_loader = get_val_loader(X_test)
-folds=KFold(n_splits=5,random_state=123,shuffle=True)
+folds=KFold(n_splits=5,random_state=698,shuffle=True)
 kfold_results=[]
 fold_pred=[]
 # pseudo_labels=[]

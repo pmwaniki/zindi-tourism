@@ -17,8 +17,9 @@ ray.init( dashboard_host="0.0.0.0")
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, MinMaxScaler, StandardScaler
 from sklearn.metrics import log_loss
+from sklearn.preprocessing import RobustScaler
 
 import numpy as np
 import pandas as pd
@@ -31,6 +32,11 @@ if device=='cpu':
     resources={"cpu": 1, "gpu": 0}
 else:
     resources = {"cpu": 2, "gpu": 0.2}
+if device == 'cpu':
+    torch.manual_seed(123)
+else:
+    torch.cuda.manual_seed(123)
+
 train=pd.read_csv(os.path.join(data_dir,"Train.csv"))
 test=pd.read_csv(os.path.join(data_dir,"Test.csv"))
 
@@ -79,11 +85,18 @@ for i,col in enumerate(X.columns):
         if len(enc.classes_)>2:
             cat_idxs.append(i)
             cat_dims.append(len(enc.classes_))
+        else:
+            scl=StandardScaler()
+            X[col] = scl.fit_transform(X[col].values.reshape(-1, 1))
+            X_test[col] = scl.transform(X_test[col].values.reshape(-1, 1))
 
     else:
         median=X[col].median()
         X[col].fillna(median,inplace=True)
         X_test[col].fillna(median,inplace=True)
+        scl=RobustScaler()
+        X[col]=scl.fit_transform(X[col].values.reshape(-1,1))
+        X_test[col]=scl.transform(X_test[col].values.reshape(-1,1))
 
 
 
@@ -102,10 +115,6 @@ configs={
 config={i:v.sample() for i,v in configs.items()}
 
 def get_model(config):
-    if device == 'cpu':
-        torch.manual_seed(123)
-    else:
-        torch.cuda.manual_seed(123)
     model = Classifier(dim_x=X.shape[1], cat_idx=cat_idxs, cat_dims=cat_dims,
                        emb_size=config['emb_size'],n_hidden=config['n_hidden'],
                        dim_hidden=config['dim_hidden'],dropout=config['dropout'])
@@ -181,7 +190,7 @@ def train_fun(model,criterion,optimizer,train_loader,val_loader,
 
 X_test = X_test.values
 test_loader = get_val_loader(X_test)
-folds=KFold(n_splits=10,random_state=123,shuffle=True)
+folds=KFold(n_splits=10,random_state=369,shuffle=True)
 kfold_results=[]
 fold_pred=[]
 pseudo_labels=[]
