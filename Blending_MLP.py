@@ -25,7 +25,7 @@ import pandas as pd
 
 from settings import data_dir, result_dir, log_dir
 
-experiment="Blending - MLP"
+experiment="Blending-MLP"
 device='cuda' if torch.cuda.is_available() else 'cpu'
 if device=='cpu':
     resources={"cpu": 1, "gpu": 0}
@@ -46,13 +46,13 @@ pseudo_train_files = {
     'semi-supervised': 'Pseudo Labels - semi-supervised.csv',
     'mlp': 'Pseudo Labels - MLP.csv',
     'catboost': 'Pseudo labels -boosting.csv',
-    'tabnet':'Pseudo Labels - Tabnet.csv',
+    # 'tabnet':'Pseudo Labels - Tabnet.csv',
 }
 psuedo_test_files = {
     'semi-supervised': 'MLP semi-supervised.csv',
     'mlp': 'MLP baseline.csv',
     'catboost': 'Catboost baseline.csv',
-    'tabnet':'Tabnet baseline.csv'
+    # 'tabnet':'Tabnet baseline.csv'
 }
 
 pseudo_train=train[['Tour_ID']].copy()
@@ -132,7 +132,7 @@ configs={
     # 'lambda_sparsity' : tune.loguniform(0.0000001,0.001),
     'emb_size':tune.choice([2,4,8,]),
     'dim_hidden':tune.choice([128,256,512]),
-    'n_hidden':tune.choice([3,7,10]),
+    'n_hidden':tune.choice([2,3,5,7,]),
     'dropout':tune.uniform(0.01,0.2),
 
     'p_corrupt': tune.uniform(0.05,0.2),
@@ -337,3 +337,6 @@ test_df_wide=pd.pivot_table(test_df_long,values='prob',index='Test_ID',columns='
 test_df_wide.to_csv(os.path.join(result_dir,f"{experiment}.csv"))
 # pseudo_labels_df.to_csv(os.path.join(result_dir,"Pseudo Labels - MLP.csv"))
 
+loglosses=[f['logloss'] for f in kfold_results]
+print("losses:", loglosses)
+print("Mean loss: ",np.mean(loglosses))

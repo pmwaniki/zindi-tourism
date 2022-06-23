@@ -9,6 +9,7 @@ prediction_files=[
     'MLP baseline.csv',
     'MLP semi-supervised.csv',
     'Catboost baseline.csv',
+    'Blending - MLP.csv'
     # 'Tabnet baseline.csv'
 ]
 
