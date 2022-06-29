@@ -39,13 +39,13 @@ pseudo_train_files = {
     'semi-supervised': 'Pseudo Labels - semi-supervised.csv',
     'mlp': 'Pseudo Labels - MLP.csv',
     'catboost': 'Pseudo labels -boosting.csv',
-    'tabnet':'Pseudo Labels - Tabnet.csv',
+    # 'tabnet':'Pseudo Labels - Tabnet.csv',
 }
 psuedo_test_files = {
     'semi-supervised': 'MLP semi-supervised.csv',
     'mlp': 'MLP baseline.csv',
     'catboost': 'Catboost baseline.csv',
-    'tabnet':'Tabnet baseline.csv'
+    # 'tabnet':'Tabnet baseline.csv'
 }
 
 pseudo_train=train[['Tour_ID','cost_category']].copy()

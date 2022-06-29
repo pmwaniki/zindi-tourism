@@ -89,3 +89,30 @@ class ClassifierRegularized(nn.Module):
         mask=self.decoder_mask(z)
         out=self.decoder_outcome(z)
         return mask,out
+
+
+class MaskPrediction(nn.Module):
+    def __init__(self, dim_x, cat_idx, cat_dims, emb_size=8, n_hidden=2, n_hidden_decoder=2,
+                 dim_hidden=32, dropout=0.01, dim_z=8):
+        super(MaskPrediction, self).__init__()
+        self.encoder = Classifier(dim_x, cat_idx, cat_dims, emb_size, n_hidden=n_hidden,
+                                  dim_hidden=dim_hidden, dropout=dropout, n_out=dim_z)
+        self.decoder = nn.Sequential(
+            nn.Linear(dim_z, dim_hidden),
+            nn.BatchNorm1d(dim_hidden),
+            nn.LeakyReLU(),
+            mlp_block(dim_hidden, dropout, n_hidden=n_hidden_decoder),
+            nn.Linear(dim_hidden, dim_x)
+        )
+
+
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                torch.nn.init.xavier_normal_(m.weight, )
+                torch.nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        z = self.encoder(x)
+        out = self.decoder(z)
+
+        return z, out

@@ -96,20 +96,20 @@ for i,col in enumerate(X.columns):
 configs={
     'lr':tune.loguniform(0.001,1.0),
     'l2': tune.loguniform(0.0000001,0.001),
-    'batch_size' : tune.choice([256,512,1024]),
+    'batch_size' : tune.choice([128,256,512,1024]),
     'lambda_sparsity' : tune.loguniform(0.000001,0.001),
-    'n_d':tune.choice([8,16,32,64,256,]),
+    'n_d':tune.choice([16,32,64,256,]),
     # 'n_a':tune.choice([16,32,64,128]),
-    'n_steps':tune.choice([3,5]),
+    'n_steps':tune.choice([1,3,5]),
     # 'gamma':tune.uniform(1.0,2.0),
     'cat_emb_dim':tune.choice([4,8]),
     'n_independent':tune.choice([1,]),
     'n_shared':tune.choice([1,]),
     # 'momentum':tune.loguniform(1e-5,1.0),
     'mask_type':tune.choice(['entmax']),
-    'virtual_batch_size': tune.choice([8,16,]),
+    'virtual_batch_size': tune.choice([8,16,32,64]),
     'l1_lambda':tune.loguniform(0.000001,0.00001),
-    'p_corrupt': tune.uniform(0.05,0.3),
+    'p_corrupt': tune.uniform(0.05,0.1),
 }
 config={i:v.sample() for i,v in configs.items()}
 
@@ -165,13 +165,13 @@ def train_fun(model,criterion,optimizer,train_loader,val_loader,lambda_sparsity,
     total_train_loss=0
     for batch_x, batch_y in train_loader:
         batch_x, batch_y = batch_x.to(device,dtype=torch.float), batch_y.to(device,dtype=torch.int64)
-        with torch.no_grad():
-            batch_x=permute_augmentation(batch_x,p_corrupt=p_corrupt)
+        # with torch.no_grad():
+        #     batch_x=permute_augmentation(batch_x,p_corrupt=p_corrupt)
         logits,M_loss = model(batch_x)
         loss = criterion(logits, batch_y)
         # z = torch.sum(torch.stack(encoder_hook.outputs, dim=0), dim=0)
         # l1_penalty = torch.norm(z, 1, 1).mean()
-        total_loss=loss#-lambda_sparsity*M_loss #+l1_lambda*l1_penalty
+        total_loss=loss-lambda_sparsity*M_loss #+l1_lambda*l1_penalty
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
@@ -191,7 +191,7 @@ def train_fun(model,criterion,optimizer,train_loader,val_loader,lambda_sparsity,
             loss = criterion(logits, batch_y)
             # z = torch.sum(torch.stack(encoder_hook.outputs, dim=0), dim=0)
             # l1_penalty = torch.norm(z, 1, 1).mean()
-            total_loss = loss# - lambda_sparsity * M_loss #+l1_lambda*l1_penalty
+            total_loss = loss - lambda_sparsity * M_loss #+l1_lambda*l1_penalty
             val_loss += loss.item() / len(val_loader)
             total_val_loss += total_loss.item()/len(val_loader)
             val_pred.append(logits.softmax(dim=1).cpu().numpy())
