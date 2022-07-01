@@ -1,7 +1,6 @@
 import os
 
 
-from pytorch_tabnet.tab_network import TabNet
 
 import torch
 from sklearn.model_selection import train_test_split, KFold
@@ -115,7 +114,7 @@ configs={
 
     # 'p_corrupt': tune.uniform(0.05,0.3),
 }
-config={i:v.sample() for i,v in configs.items()}
+# config={i:v.sample() for i,v in configs.items()}
 
 def get_model(config):
     model = ClassifierRegularized(dim_x=X.shape[1], cat_idx=cat_idxs, cat_dims=cat_dims,
@@ -158,7 +157,6 @@ def train_fun(model,criterion,optimizer,train_loader,val_loader,
               ):
     p_corrupt=np.random.uniform(0.01,0.05)
     model.train()
-    # loss_weight = F.softmax(torch.randn(2,device=device), dim=-1, )
     train_loss = 0
     total_train_loss=0
     train_mask_loss=0

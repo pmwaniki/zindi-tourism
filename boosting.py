@@ -3,7 +3,6 @@ import os
 from catboost import CatBoostClassifier, Pool,sum_models
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import KFold
-from scipy.special import softmax
 
 import numpy as np
 import pandas as pd
@@ -58,33 +57,10 @@ for i,col in enumerate(X_train.columns):
         X_test[col].fillna(median,inplace=True)
 
 
-pool_train=Pool(X_train,y_train,cat_features=cat_predictors+embedding_predictors,)
+# pool_train=Pool(X_train,y_train,cat_features=cat_predictors+embedding_predictors,)
 pool_test=Pool(X_test,cat_features=cat_predictors+embedding_predictors,)
 
 
-# model = CatBoostClassifier(loss_function='MultiClass',train_dir=os.path.join(log_dir,f'{experiment}'),
-#                            verbose=False,task_type="GPU",
-#                            # early_stopping_rounds=10
-#                            )
-#
-# grid = {'learning_rate': [0.0005,0.001,0.005,0.01,0.05,0.1,0.3,],
-#         'depth': [3,4,6,7,],
-#         'l2_leaf_reg': [1, 3, 5, 7, 9],
-#         # 'random_strength': [1,5,10,20],
-#         'n_estimators':[500],
-#         'bagging_temperature':[0.0,0.1,0.2,0.5,0.7,0.9,1.0]}
-#
-#
-#
-# grid_search_result = model.randomized_search(grid,
-#                                        pool_train,
-#                                        plot=False,
-#                                        cv=10,
-#                                         n_iter=300,
-#                                              refit=False,
-#                                              )
-
-# best_params=model.get_params()
 models = []
 test_preds=[]
 pseudo_labels=[]
