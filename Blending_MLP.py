@@ -1,7 +1,9 @@
+"""
+This script is similar to mlp.py but the predictions from mlp.py, boosting.py and semi-supervised.py
+ are concatenated to the imputs.
+
+"""
 import os
-
-
-
 import torch
 from sklearn.model_selection import train_test_split, KFold
 from torch.utils.data import TensorDataset,DataLoader,WeightedRandomSampler
@@ -269,11 +271,9 @@ for i,(id_train,id_valid) in enumerate(folds.split(X,y)):
             reduction_factor=2)
 
     reporter = CLIReporter(
-        # parameter_columns=["l1", "l2", "lr", "batch_size"],
         metric_columns=["loss", "train-loss", "logloss", "training_iteration"])
 
 
-    # early_stopper=EarlyStopper(metric='loss',tolerance=10,mode='min')
     result = tune.run(
         Trainer,
         checkpoint_at_end=True,

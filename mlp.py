@@ -1,7 +1,11 @@
+"""
+Simple Multi-layer perceptron for classification.
+===================================================
+The data is split into 5 folds. 5 MLP are trained and final test predictions are obtained
+by averaging predictions from the 5 folds. Predictions on the hold-out set are also saved and used in Blending_MLP.py
+
+"""
 import os
-
-
-
 import torch
 from sklearn.model_selection import train_test_split, KFold
 from torch.utils.data import TensorDataset,DataLoader,WeightedRandomSampler
@@ -40,13 +44,14 @@ train=pd.read_csv(os.path.join(data_dir,"Train.csv"))
 test=pd.read_csv(os.path.join(data_dir,"Test.csv"))
 
 #COUNTRY
+# Countries with less 50 observations in the training set are recoded to "Others"
 tab_countries=train['country'].value_counts()
 dominant_countries=tab_countries[tab_countries>50].index.values
 train['country']=train['country'].map(lambda x: x if x in dominant_countries else "Others")
 test['country']=test['country'].map(lambda x: x if x in dominant_countries else "Others")
 
 
-
+# List of all predictors
 predictors=['country', 'age_group', 'travel_with', 'total_female',
        'total_male', 'purpose', 'main_activity', 'info_source',
        'tour_arrangement', 'package_transport_int', 'package_accomodation',
@@ -54,6 +59,7 @@ predictors=['country', 'age_group', 'travel_with', 'total_female',
        'package_guided_tour', 'package_insurance', 'night_mainland',
        'night_zanzibar', 'first_trip_tz']
 
+# List of categorical predictors
 cat_predictors=['country', 'age_group', 'travel_with',  'purpose', 'main_activity', 'info_source',
        'tour_arrangement', 'package_transport_int', 'package_accomodation',
        'package_food', 'package_transport_tz', 'package_sightseeing',
@@ -98,12 +104,11 @@ for i,col in enumerate(X.columns):
         X_test[col]=scl.transform(X_test[col].values.reshape(-1,1))
 
 
-
+# Hyper-parameter search space
 configs={
     'lr':tune.loguniform(0.0001,0.1),
     'l2': tune.loguniform(0.00001,0.01),
     'batch_size' : tune.choice([32,64,128,256,512,1024]),
-    # 'lambda_sparsity' : tune.loguniform(0.0000001,0.001),
     'emb_size':tune.choice([2,4,8,]),
     'dim_hidden':tune.choice([128,256,512]),
     'n_hidden':tune.choice([2,3,5,7]),
@@ -111,9 +116,14 @@ configs={
 
     'p_corrupt': tune.uniform(0.05,0.2),
 }
-config={i:v.sample() for i,v in configs.items()}
+# config={i:v.sample() for i,v in configs.items()}
 
 def get_model(config):
+    """
+    Returns a model
+    :param config: Dict containing a single hyper-parameter set
+    :return: pytorch module
+    """
     model = Classifier(dim_x=X.shape[1], cat_idx=cat_idxs, cat_dims=cat_dims,
                        emb_size=config['emb_size'],n_hidden=config['n_hidden'],
                        dim_hidden=config['dim_hidden'],dropout=config['dropout'])
@@ -121,19 +131,38 @@ def get_model(config):
     return model
 
 def get_optimizer(config,model):
+    """
+    helper function for creating an optimizer
+    :param config:
+    :param model: Dict containing a single hyper-parameter set
+    :return: Adam optimizer
+    """
     optimizer=torch.optim.Adam(params=model.parameters(),lr=config['lr'],weight_decay=config['l2'])
     return optimizer
 
 def get_train_loader(config,X_train,y_train):
+    """
+
+    :param config: Dict containing a single hyper-parameter set
+    :param X_train: numpy array containing train inputs
+    :param y_train: numpy array containing train labels
+    :return: pytorch data loader
+    """
     dataset=TensorDataset(torch.tensor(X_train),torch.tensor(y_train,dtype=torch.float))
     train_loader=DataLoader(dataset,batch_size=config['batch_size'],shuffle=True,)
-    # train_loader = DataLoader(dataset, batch_size=config['batch_size'], shuffle=True, sampler=None)
     return train_loader
 
 
 
 
 def get_val_loader(X_valid,y_valid=None,batch_size=256):
+    """
+
+    :param X_valid: numpy array containing validation inputs
+    :param y_valid: numpy array containing validation labels
+    :param batch_size: batch size
+    :return: pytorch data loader
+    """
     if y_valid is not None:
         dataset = TensorDataset(torch.tensor(X_valid), torch.tensor(y_valid,dtype=torch.float))
     else:
@@ -146,6 +175,18 @@ def get_val_loader(X_valid,y_valid=None,batch_size=256):
 
 def train_fun(model,criterion,optimizer,train_loader,val_loader,
               device='cpu',scheduler=None,p_corrupt=0.0):
+    """
+    Run the training loop for one epoch
+    :param model: pytorch module
+    :param criterion: loss function
+    :param optimizer: optimizer
+    :param train_loader: train loader
+    :param val_loader: val loader
+    :param device: cpu or cuda
+    :param scheduler: pytorch lr scheduler
+    :param p_corrupt: proportion of values in a batch to be permuted (augmentation)
+    :return: performance metrics after one epoch
+    """
     model.train()
     train_loss = 0
     total_train_loss=0
@@ -192,7 +233,7 @@ test_loader = get_val_loader(X_test)
 folds=KFold(n_splits=10,random_state=369,shuffle=True)
 kfold_results=[]
 fold_pred=[]
-pseudo_labels=[]
+pseudo_labels=[] #pseudo labels are used for blending (Blending_MLP.py)
 pseudo_ids=[]
 for i,(id_train,id_valid) in enumerate(folds.split(X,y)):
     X_train, X_valid=X.iloc[id_train,:],X.iloc[id_valid,:]

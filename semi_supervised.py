@@ -1,7 +1,12 @@
+"""
+Multi-layer perceptron for classification with additional unsupervised task for regularization.
+===================================================
+The data is split into 5 folds. 5 MLP are trained and final test predictions are obtained
+by averaging predictions from the 5 folds. Predictions on the hold-out set are also saved and used in Blending_MLP.py
+
+
+"""
 import os
-
-
-
 import torch
 from sklearn.model_selection import train_test_split, KFold
 from torch.utils.data import TensorDataset,DataLoader,WeightedRandomSampler
