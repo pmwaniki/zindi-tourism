@@ -1,4 +1,5 @@
-
+# Zindi Tourist classification competition (solution at position 10)
+Details about the competion is available at https://zindi.africa/competitions/ai4d-lab-tanzania-tourism-classification-challenge
 
 The final solution was an ensemble of 4 models:
 - Gradient boosting using catboost (boosting.py)
